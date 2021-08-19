@@ -16,9 +16,12 @@ import {
 } from 'web/util/index'
 
 import { patch } from './patch'
+
 import platformDirectives from './directives/index'
+
 import platformComponents from './components/index'
 
+// 增加工具方法
 // install platform specific utils
 Vue.config.mustUseProp = mustUseProp
 Vue.config.isReservedTag = isReservedTag
@@ -26,13 +29,18 @@ Vue.config.isReservedAttr = isReservedAttr
 Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
+// 注册指令与组件
+// directives ： v-model, v-show
+// components :  transition, transitionGroup
 // install platform runtime directives & components
 extend(Vue.options.directives, platformDirectives)
 extend(Vue.options.components, platformComponents)
 
+// 增加 patch 函数，用于将虚拟dom 渲染到页面上。
 // install platform patch function
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
+// 
 // public mount method
 Vue.prototype.$mount = function (
   el?: string | Element,

@@ -26,6 +26,7 @@ const weexFactoryPlugin = {
 }
 
 const aliases = require('./alias')
+
 const resolve = p => {
   const base = p.split('/')[0]
   if (aliases[base]) {

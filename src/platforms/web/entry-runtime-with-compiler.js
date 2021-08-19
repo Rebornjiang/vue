@@ -13,8 +13,10 @@ const idToTemplate = cached(id => {
   const el = query(id)
   return el && el.innerHTML
 })
-
+// $mount 方法用于将
 const mount = Vue.prototype.$mount
+
+// 重写 $mount 方法，增加编译功能，用于解析template模板将其转换为render函数。（vue 完整版(complie + runtime)）
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
