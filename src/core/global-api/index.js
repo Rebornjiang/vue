@@ -18,9 +18,11 @@ import {
   defineReactive
 } from '../util/index'
 
+
 export function initGlobalAPI (Vue: GlobalAPI) {
   // config
   const configDef = {}
+  // 对 Vue.config 属性进行数据劫持
   configDef.get = () => config
   if (process.env.NODE_ENV !== 'production') {
     configDef.set = () => {
@@ -29,11 +31,18 @@ export function initGlobalAPI (Vue: GlobalAPI) {
       )
     }
   }
+
+  // 初始化 Vue.config 对象
   Object.defineProperty(Vue, 'config', configDef)
 
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.
+  // 暴露工具方法，这些方法不是公共 API ，除非你意识到风险，否则应该避免依赖他们。
+  // warn 用于生成 Vue 警告信息 与 tip 
+  // extend 用于对象的浅拷贝
+  // mergeOptions ？ RJ
+  // defineReactive 用于给一个对象的某个属性定义响应式
   Vue.util = {
     warn,
     extend,
@@ -41,16 +50,23 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     defineReactive
   }
 
+  // 静态方法， 分析响应式之后再来看
   Vue.set = set
   Vue.delete = del
   Vue.nextTick = nextTick
 
   // 2.6 explicit observable API
+  // 让一个对象成为响应式
   Vue.observable = <T>(obj: T): T => {
     observe(obj)
     return obj
   }
 
+
+  // 初始化 Vue.options 对象，并给其扩展
+  // components， directives，filters属性
+  // 应该是用于存储所有的全局 components， directives，filters  RJ
+  
   Vue.options = Object.create(null)
   ASSET_TYPES.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)
@@ -58,12 +74,18 @@ export function initGlobalAPI (Vue: GlobalAPI) {
 
   // this is used to identify the "base" constructor to extend all plain-object
   // components with in Weex's multi-instance scenarios.
+  // 给 options 添加了 _base 属性用于记录 Vue
   Vue.options._base = Vue
 
+  // 将 全局组件 keep-alive 添加到 Vue.options.components 里面
   extend(Vue.options.components, builtInComponents)
 
+  // 给 Vue 挂载 use 方法， 注册插件
   initUse(Vue)
+  // 给 Vue 挂载 Mixin 方法， 混入
   initMixin(Vue)
+  // 给 Vue 挂载 extend 方法， 使用基础 Vue 构造器，创建一个“子类” 的 Vue，具有 Vue 的方法。用于创建 编程式组件（项 element-ui 种 message 组件）
   initExtend(Vue)
+  // 给 Vue 挂载 component , directive , filter 方法 
   initAssetRegisters(Vue)
 }

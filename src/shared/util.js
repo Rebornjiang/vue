@@ -215,6 +215,7 @@ export const bind = Function.prototype.bind
 /**
  * Convert an Array-like object to a real Array.
  */
+// [plugin, 1,2] 1
 export function toArray (list: any, start?: number): Array<any> {
   start = start || 0
   let i = list.length - start
