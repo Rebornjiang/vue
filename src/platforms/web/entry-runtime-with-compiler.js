@@ -1,5 +1,5 @@
 /* @flow */
-//  大写 RJ 表示源码未搞明白的地方
+//  大写 RJ 表示源码未
 import config from 'core/config'
 import { warn, cached } from 'core/util/index'
 import { mark, measure } from 'core/util/perf'
@@ -81,6 +81,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
+  
   return mount.call(this, el, hydrating)
 }
 

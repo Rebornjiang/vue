@@ -143,9 +143,14 @@ export function mountComponent (
   el: ?Element,
   hydrating?: boolean
 ): Component {
+  // 需要挂载的dom元素
   vm.$el = el
+
+  // 如果当前 组件实例 没有render函数，将render函数设置为创建空的虚拟dom
   if (!vm.$options.render) {
     vm.$options.render = createEmptyVNode
+
+    // 开发环境的提示
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
@@ -164,6 +169,8 @@ export function mountComponent (
       }
     }
   }
+
+  // 触发 beforeMount 钩子
   callHook(vm, 'beforeMount')
 
   let updateComponent

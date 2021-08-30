@@ -339,22 +339,35 @@ export function stateMixin (Vue: Class<Component>) {
       warn(`$props is readonly.`, this)
     }
   }
+  // Object.definedProperty setter 和 getter 函数内部的this ，被设置属性的所属的对象本身。
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
+
 
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
 
+  // 作用：
+  // 监听 一个表达式或是函数的返回值
+  // 在第二个参数的回调函数中返回变化之后的新值与原始值，do something
+  // 第三个 options 参数可以开启深度监听或是立即执行
+  // $watch 方法返回取消监听
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
     cb: any,
     options?: Object
   ): Function {
+    // vm 是实例本身
     const vm: Component = this
+
+    // cb 是否是对象 {}
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
+
     options = options || {}
+
+    // 标记为用户 watcher (应该指用户收到注册监听) RJ
     options.user = true
     const watcher = new Watcher(vm, expOrFn, cb, options)
     if (options.immediate) {
@@ -363,6 +376,8 @@ export function stateMixin (Vue: Class<Component>) {
       invokeWithErrorHandling(cb, vm, [watcher.value], vm, info)
       popTarget()
     }
+
+    //
     return function unwatchFn () {
       watcher.teardown()
     }

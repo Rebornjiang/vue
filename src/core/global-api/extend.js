@@ -29,7 +29,7 @@ export function initExtend (Vue: GlobalAPI) {
     if (process.env.NODE_ENV !== 'production' && name) {
       validateComponentName(name)
     }
-
+    
     const Sub = function VueComponent (options) {
       this._init(options)
     }

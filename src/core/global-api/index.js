@@ -32,16 +32,17 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     }
   }
 
-  // 初始化 Vue.config 对象
+  // 初始化 Vue.config 对象, 在 runtime/index.js 有给 Vue.config 对象里面添加一些方法
   Object.defineProperty(Vue, 'config', configDef)
 
+  // 给 Vue 增加 util 对象，里面是 要使用的工具发给发
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.
   // 暴露工具方法，这些方法不是公共 API ，除非你意识到风险，否则应该避免依赖他们。
   // warn 用于生成 Vue 警告信息 与 tip 
   // extend 用于对象的浅拷贝
-  // mergeOptions ？ RJ
+  // mergeOptions ？将两个选项对象合并为 一个新对象。
   // defineReactive 用于给一个对象的某个属性定义响应式
   Vue.util = {
     warn,
@@ -71,7 +72,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   ASSET_TYPES.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)
   })
-
+  
   // this is used to identify the "base" constructor to extend all plain-object
   // components with in Weex's multi-instance scenarios.
   // 给 options 添加了 _base 属性用于记录 Vue
@@ -84,7 +85,9 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   initUse(Vue)
   // 给 Vue 挂载 Mixin 方法， 混入
   initMixin(Vue)
-  // 给 Vue 挂载 extend 方法， 使用基础 Vue 构造器，创建一个“子类” 的 Vue，具有 Vue 的方法。用于创建 编程式组件（项 element-ui 种 message 组件）
+  // 给 Vue 挂载 extend 方法， 使用基础 Vue 构造器，创建一个“子类” 的 Vue
+  // 子类的prototype.prototype = Vue.prototype
+  // 具有 Vue 的方法。用于创建 编程式组件（项 element-ui 种 message 组件）
   initExtend(Vue)
   // 给 Vue 挂载 component , directive , filter 方法 
   initAssetRegisters(Vue)

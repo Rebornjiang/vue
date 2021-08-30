@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,6 +8,7 @@
   <title>Document</title>
   <script src="../dist/vue.js"></script>
 </head>
+
 <body>
 
   <div id="app">
@@ -22,7 +24,12 @@
         return h('h1', 'hello Render')
       }
     })
+    // 测试
+    const OPTIONS = {}
+    Reflect.ownKeys(Vue).forEach(key => OPTIONS[key] = Vue[key])
+    console.log(OPTIONS, '查看 Vue 静态成员')
   </script>
-  
+
 </body>
+
 </html>

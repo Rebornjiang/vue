@@ -58,6 +58,8 @@ export function eventsMixin (Vue: Class<Component>) {
         vm.$on(event[i], fn)
       }
     } else {
+      // 真正事件处理逻辑
+      // _events 事件中心用于收集注册事件的所有回调函数
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
@@ -68,6 +70,7 @@ export function eventsMixin (Vue: Class<Component>) {
     return vm
   }
 
+  // 监听一个自定义事件，但只会触发一次回调，触发之后，监听器就会被移除
   Vue.prototype.$once = function (event: string, fn: Function): Component {
     const vm: Component = this
     function on () {
@@ -115,10 +118,13 @@ export function eventsMixin (Vue: Class<Component>) {
     return vm
   }
 
+  // $emit
   Vue.prototype.$emit = function (event: string): Component {
     const vm: Component = this
     if (process.env.NODE_ENV !== 'production') {
+
       const lowerCaseEvent = event.toLowerCase()
+      
       if (lowerCaseEvent !== event && vm._events[lowerCaseEvent]) {
         tip(
           `Event "${lowerCaseEvent}" is emitted in component ` +

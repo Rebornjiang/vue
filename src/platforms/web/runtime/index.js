@@ -40,7 +40,7 @@ extend(Vue.options.components, platformComponents)
 // install platform patch function
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
-// 
+// 设置 $mount 方法，用于挂载 DOM
 // public mount method
 Vue.prototype.$mount = function (
   el?: string | Element,

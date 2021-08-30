@@ -292,6 +292,12 @@ export function validateComponentName (name: string) {
 }
 
 /**
+ * options.props = [] || {}， 可以为 数组或是对象
+ * 统一 props 的格式，确认 props 是对象格式,如下
+ * props: {
+ *  a : {type: ?},
+ * b : {type: ?}
+ * }
  * Ensure all props option syntax are normalized into the
  * Object-based format.
  */
@@ -305,6 +311,7 @@ function normalizeProps (options: Object, vm: ?Component) {
     while (i--) {
       val = props[i]
       if (typeof val === 'string') {
+        // 目前猜测应该为转驼峰
         name = camelize(val)
         res[name] = { type: null }
       } else if (process.env.NODE_ENV !== 'production') {
@@ -382,6 +389,12 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
 }
 
 /**
+ * 将两个选项对象合并为 一个新对象。
+ * 核心用处是用来实例化和继承
+ * 合并规则如下：
+ * 分别遍历 父子 options，
+ * const val = child[key] === undefined ? parent[key] : child[key]
+ * newOptions[key] = val
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
@@ -398,6 +411,7 @@ export function mergeOptions (
     child = child.options
   }
 
+  // 用于规范化 options 对象中，props ， inject， directives 的数据格式。
   normalizeProps(child, vm)
   normalizeInject(child, vm)
   normalizeDirectives(child)
@@ -417,6 +431,7 @@ export function mergeOptions (
     }
   }
 
+  // 两个 options 合并规则
   const options = {}
   let key
   for (key in parent) {
