@@ -443,6 +443,7 @@ export function mergeOptions (
     }
   }
   function mergeField (key) {
+    // starcts 存储所有的合并规则
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }

@@ -59,7 +59,7 @@ export function eventsMixin (Vue: Class<Component>) {
       }
     } else {
       // 真正事件处理逻辑
-      // _events 事件中心用于收集注册事件的所有回调函数
+      // _events 事件中心用于收集注册事件的所有回调函数, _events = {eventName: []}
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
@@ -105,6 +105,7 @@ export function eventsMixin (Vue: Class<Component>) {
       vm._events[event] = null
       return vm
     }
+    
     // specific handler
     let cb
     let i = cbs.length
@@ -135,12 +136,16 @@ export function eventsMixin (Vue: Class<Component>) {
         )
       }
     }
+
     let cbs = vm._events[event]
     if (cbs) {
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
+
+      // 用于获取所有参数 $emit(eventName, param1, parma2, ....)
       const args = toArray(arguments, 1)
       const info = `event handler for "${event}"`
       for (let i = 0, l = cbs.length; i < l; i++) {
+        // 发布通知
         invokeWithErrorHandling(cbs[i], vm, args, vm, info)
       }
     }

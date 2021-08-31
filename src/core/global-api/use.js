@@ -25,7 +25,6 @@ export function initUse (Vue: GlobalAPI) {
       // plugin 为函数的情况
       plugin.apply(null, args)
     }
-    
     // 存储已经注册的插件
     installedPlugins.push(plugin)
     return this

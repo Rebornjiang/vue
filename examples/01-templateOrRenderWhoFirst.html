@@ -15,8 +15,20 @@
 
   </div>
 
-
+  <div id="app2"></div>
   <script>
+
+  
+
+    const Sub11 = Vue.extend({
+      // template: '<h1>子类构造器</h1>',
+      render(h) {
+        return h('h2', 'hello 子类构造器')
+      },
+    })
+
+    new Sub11().$mount('#app2')
+
     const vm = new Vue({
       el: '#app',
       template: '<h1>hello Template</h1>',
@@ -24,10 +36,28 @@
         return h('h1', 'hello Render')
       }
     })
-    // 测试
-    const OPTIONS = {}
-    Reflect.ownKeys(Vue).forEach(key => OPTIONS[key] = Vue[key])
-    console.log(OPTIONS, '查看 Vue 静态成员')
+
+    function ToArray(list, start) {
+      start = start || 0
+      let i = list.length - start
+      const ret = new Array(i)
+      while(--i) {
+        ret[i] = list[i + start]
+      }
+
+      return ret
+    }
+
+    const arr = [1,2,3]
+
+    ToArray(arr, 1)
+    let len = arr.length
+    while(len--) {
+      console.log(arr[len])
+    }
+
+ 
+ 
   </script>
 
 </body>
