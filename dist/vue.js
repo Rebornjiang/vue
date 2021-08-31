@@ -3554,14 +3554,17 @@
 
   function renderMixin (Vue) {
     // install runtime convenience helpers
+    // 给 Render 函数增加一些帮助方法
     installRenderHelpers(Vue.prototype);
 
     Vue.prototype.$nextTick = function (fn) {
       return nextTick(fn, this)
     };
 
+    // 
     Vue.prototype._render = function () {
       var vm = this;
+      // 从 options 取到 用户定义的  或是 模板解析编译成的 render函数
       var ref = vm.$options;
       var render = ref.render;
       var _parentVnode = ref._parentVnode;
@@ -3584,6 +3587,7 @@
         // separately from one another. Nested component's render fns are called
         // when parent component is patched.
         currentRenderingInstance = vm;
+        // 调用 render 函数 获取 虚拟 dom
         vnode = render.call(vm._renderProxy, vm.$createElement);
       } catch (e) {
         handleError(e, vm, "render");
@@ -3973,6 +3977,7 @@
   }
 
   function lifecycleMixin (Vue) {
+    // _update 方法的作用是把 VNode 渲染成真实的 DOM
     Vue.prototype._update = function (vnode, hydrating) {
       var vm = this;
       var prevEl = vm.$el;
@@ -3981,10 +3986,13 @@
       vm._vnode = vnode;
       // Vue.prototype.__patch__ is injected in entry points
       // based on the rendering backend used.
+      // 判断是否时首次渲染
       if (!prevVnode) {
+        // 首次渲染
         // initial render
         vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */);
       } else {
+        // 数据更新后
         // updates
         vm.$el = vm.__patch__(prevVnode, vnode);
       }
@@ -4087,7 +4095,7 @@
       }
     }
 
-    // 触发 beforeMount 钩子
+    // 触发 beforeMount
     callHook(vm, 'beforeMount');
 
     var updateComponent;
@@ -5160,6 +5168,7 @@
   eventsMixin(Vue);
 
   // 初始化生命周期的相关方法
+  // _update， $forceUpdate, $destory
   lifecycleMixin(Vue);
 
   // 混入 render 

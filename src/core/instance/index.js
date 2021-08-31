@@ -30,6 +30,7 @@ stateMixin(Vue)
 eventsMixin(Vue)
 
 // 初始化生命周期的相关方法
+// _update， $forceUpdate, $destory
 lifecycleMixin(Vue)
 
 // 混入 render 
