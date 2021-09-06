@@ -49,13 +49,17 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
+  // 初始化 vm._props ，并将 props {key : val} 转换为响应式数据，病假 props 注入到 vm 实例中
   if (opts.props) initProps(vm, opts.props)
-  if (opts.methods) initMethods(vm, opts.methods)
+  // 将 options.methods 对象中的所有方法挂载到 vm 实例上去
+  if (opts.methods) initMethods(vm, opts.methods) 
   if (opts.data) {
+    // 初始化 data 中的数据，将其添加到 vm 上。
     initData(vm)
   } else {
     observe(vm._data = {}, true /* asRootData */)
   }
+  // RJ
   if (opts.computed) initComputed(vm, opts.computed)
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
@@ -64,6 +68,7 @@ export function initState (vm: Component) {
 
 function initProps (vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {}
+
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
@@ -73,8 +78,11 @@ function initProps (vm: Component, propsOptions: Object) {
   if (!isRoot) {
     toggleObserving(false)
   }
+
+  // 处理 vm.props， 将 key val 添加到 vm._props 中
   for (const key in propsOptions) {
     keys.push(key)
+    // 传入值的类型检查
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
@@ -112,9 +120,13 @@ function initProps (vm: Component, propsOptions: Object) {
 
 function initData (vm: Component) {
   let data = vm.$options.data
+  // data 有可能是函数的情况，获取 data
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+
+
+  // 处理 data 不是对象的情况
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -123,6 +135,7 @@ function initData (vm: Component) {
       vm
     )
   }
+
   // proxy data on instance
   const keys = Object.keys(data)
   const props = vm.$options.props
@@ -130,6 +143,7 @@ function initData (vm: Component) {
   let i = keys.length
   while (i--) {
     const key = keys[i]
+    // 保证 props, methods 中没有与 data 中有重复key
     if (process.env.NODE_ENV !== 'production') {
       if (methods && hasOwn(methods, key)) {
         warn(
@@ -145,6 +159,8 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
+      // key 不是以 $ 开头的 ，到这里。
+      // 将 data 所定义的数据添加 this 实例上，借助 Object.defineProperty 进行数据劫持。当方位 this.xxx 时候 去this._data 中查找
       proxy(vm, `_data`, key)
     }
   }

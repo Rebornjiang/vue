@@ -10,8 +10,11 @@ import {
 import { updateListeners } from '../vdom/helpers/index'
 
 export function initEvents (vm: Component) {
+  // 初始化当前组件的 事件中心对象
   vm._events = Object.create(null)
   vm._hasHookEvent = false
+
+  // 拿到父组件的所有监听器，通过@xxxx 注册的
   // init parent attached events
   const listeners = vm.$options._parentListeners
   if (listeners) {
@@ -105,7 +108,7 @@ export function eventsMixin (Vue: Class<Component>) {
       vm._events[event] = null
       return vm
     }
-    
+
     // specific handler
     let cb
     let i = cbs.length

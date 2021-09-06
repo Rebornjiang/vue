@@ -2135,6 +2135,7 @@
     };
 
     initProxy = function initProxy (vm) {
+      // 是否支持 Proxy 语法
       if (hasProxy) {
         // determine which proxy handler to use
         var options = vm.$options;
@@ -2462,11 +2463,15 @@
   }
 
   function initInjections (vm) {
+    // inject = {injectKey: provideKey}
+    // injectKey 为当前组件 的绑定名。
+    // 当前 result 是一个对象，{injectKey: provideVal}
     var result = resolveInject(vm.$options.inject, vm);
     if (result) {
       toggleObserving(false);
       Object.keys(result).forEach(function (key) {
         /* istanbul ignore else */
+        // 将其添加到 vm 实例上
         {
           defineReactive(vm, key, result[key], function () {
             warn(
@@ -2486,16 +2491,22 @@
     if (inject) {
       // inject is :any because flow is not smart enough to figure out cached
       var result = Object.create(null);
+      // 根据所处环境是否支持 Symbol 调用不同的 APi
       var keys = hasSymbol
         ? Reflect.ownKeys(inject)
         : Object.keys(inject);
 
+      // 假设 inject: ['a']
       for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
         // #6574 in case the inject object is observed...
         if (key === '__ob__') { continue }
+
         var provideKey = inject[key].from;
         var source = vm;
+        // 在当前组件 _provided 中查找是否存在 provideKey, 查找父级的  _provide 中
+        // 是否存在 provideKey，直到根组件。
+        // 如果有查找到，将 父级组件的 provideVal 设置给到 result[key]
         while (source) {
           if (source._provided && hasOwn(source._provided, provideKey)) {
             result[key] = source._provided[provideKey];
@@ -3526,6 +3537,9 @@
     var renderContext = parentVnode && parentVnode.context;
     vm.$slots = resolveSlots(options._renderChildren, renderContext);
     vm.$scopedSlots = emptyObject;
+
+
+    
     // bind the createElement fn to this instance
     // so that we get proper render context inside it.
     // args order: tag, data, children, normalizationType, alwaysNormalize
@@ -3533,12 +3547,14 @@
     vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
     // normalization is always applied for the public version, used in
     // user-written render functions.
+    // 为 vm 添加 createElement 用于创建虚拟dom
     vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
 
     // $attrs & $listeners are exposed for easier HOC creation.
     // they need to be reactive so that HOCs using them are always updated
     var parentData = parentVnode && parentVnode.data;
 
+    // 
     /* istanbul ignore else */
     {
       defineReactive(vm, '$attrs', parentData && parentData.attrs || emptyObject, function () {
@@ -3554,14 +3570,14 @@
 
   function renderMixin (Vue) {
     // install runtime convenience helpers
-    // 给 Render 函数增加一些帮助方法
+    // 给实例增加了一些渲染时的帮助方法
     installRenderHelpers(Vue.prototype);
 
     Vue.prototype.$nextTick = function (fn) {
       return nextTick(fn, this)
     };
 
-    // 
+    // 调用 用户传入的render 生成虚拟dom返回
     Vue.prototype._render = function () {
       var vm = this;
       // 从 options 取到 用户定义的  或是 模板解析编译成的 render函数
@@ -3794,8 +3810,11 @@
   /*  */
 
   function initEvents (vm) {
+    // 初始化当前组件的 事件中心对象
     vm._events = Object.create(null);
     vm._hasHookEvent = false;
+
+    // 拿到父组件的所有监听器，通过@xxxx 注册的
     // init parent attached events
     var listeners = vm.$options._parentListeners;
     if (listeners) {
@@ -3889,7 +3908,7 @@
         vm._events[event] = null;
         return vm
       }
-      
+
       // specific handler
       var cb;
       var i = cbs.length;
@@ -3955,16 +3974,27 @@
 
     // locate first non-abstract parent
     var parent = options.parent;
+
+    // 当前组件如果有父组件且父组件不为抽象组件，将当前组件添加到父组件 $children 属性里
     if (parent && !options.abstract) {
+
+      // 这个循环的作用：
+      // 查找非抽象父组件
       while (parent.$options.abstract && parent.$parent) {
         parent = parent.$parent;
       }
+      // 将当前组件添加到父组件children中
       parent.$children.push(vm);
     }
 
+
+    // 设置父组件
     vm.$parent = parent;
+
+    // 设置根组件
     vm.$root = parent ? parent.$root : vm;
 
+    // 初始化一些属性
     vm.$children = [];
     vm.$refs = {};
 
@@ -3977,12 +4007,17 @@
   }
 
   function lifecycleMixin (Vue) {
-    // _update 方法的作用是把 VNode 渲染成真实的 DOM
+    // _update 方法的作用是把 VNode 渲染成真实的 DOM，其实就是调用 patch 函数
     Vue.prototype._update = function (vnode, hydrating) {
       var vm = this;
+      // 取到之前的虚拟dom， elm
       var prevEl = vm.$el;
       var prevVnode = vm._vnode;
+
+      // 取到设置当前 组件 为活跃组件
       var restoreActiveInstance = setActiveInstance(vm);
+
+      
       vm._vnode = vnode;
       // Vue.prototype.__patch__ is injected in entry points
       // based on the rendering backend used.
@@ -3996,14 +4031,18 @@
         // updates
         vm.$el = vm.__patch__(prevVnode, vnode);
       }
+
+      // 设置为活跃组件
       restoreActiveInstance();
       // update __vue__ reference
+      // 更新 _vue_ 的引用
       if (prevEl) {
         prevEl.__vue__ = null;
       }
       if (vm.$el) {
         vm.$el.__vue__ = vm;
       }
+      
       // if parent is an HOC, update its $el as well
       if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
         vm.$parent.$el = vm.$el;
@@ -4012,6 +4051,7 @@
       // updated in a parent's updated hook.
     };
 
+
     Vue.prototype.$forceUpdate = function () {
       var vm = this;
       if (vm._watcher) {
@@ -4019,6 +4059,7 @@
       }
     };
 
+    // 组件卸载，清除监听，事件，删除dom元素
     Vue.prototype.$destroy = function () {
       var vm = this;
       if (vm._isBeingDestroyed) {
@@ -4026,11 +4067,15 @@
       }
       callHook(vm, 'beforeDestroy');
       vm._isBeingDestroyed = true;
+
+      // 从父组件的 children 属性中 移除当前卸载的组件
       // remove self from parent
       var parent = vm.$parent;
       if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
         remove(parent.$children, vm);
       }
+
+      // 移除监听
       // teardown watchers
       if (vm._watcher) {
         vm._watcher.teardown();
@@ -4050,12 +4095,15 @@
       vm.__patch__(vm._vnode, null);
       // fire destroyed hook
       callHook(vm, 'destroyed');
+
+      // 移除所有的实例的监听事件 this._events
       // turn off all instance listeners.
       vm.$off();
       // remove __vue__ reference
       if (vm.$el) {
         vm.$el.__vue__ = null;
       }
+
       // release circular reference (#6759)
       if (vm.$vnode) {
         vm.$vnode.parent = null;
@@ -4689,13 +4737,17 @@
   function initState (vm) {
     vm._watchers = [];
     var opts = vm.$options;
+    // 初始化 vm._props ，并将 props {key : val} 转换为响应式数据，病假 props 注入到 vm 实例中
     if (opts.props) { initProps(vm, opts.props); }
-    if (opts.methods) { initMethods(vm, opts.methods); }
+    // 将 options.methods 对象中的所有方法挂载到 vm 实例上去
+    if (opts.methods) { initMethods(vm, opts.methods); } 
     if (opts.data) {
+      // 初始化 data 中的数据，将其添加到 vm 上。
       initData(vm);
     } else {
       observe(vm._data = {}, true /* asRootData */);
     }
+    // RJ
     if (opts.computed) { initComputed(vm, opts.computed); }
     if (opts.watch && opts.watch !== nativeWatch) {
       initWatch(vm, opts.watch);
@@ -4704,6 +4756,7 @@
 
   function initProps (vm, propsOptions) {
     var propsData = vm.$options.propsData || {};
+
     var props = vm._props = {};
     // cache prop keys so that future props updates can iterate using Array
     // instead of dynamic object key enumeration.
@@ -4713,8 +4766,11 @@
     if (!isRoot) {
       toggleObserving(false);
     }
+
+    // 处理 vm.props， 将 key val 添加到 vm._props 中
     var loop = function ( key ) {
       keys.push(key);
+      // 传入值的类型检查
       var value = validateProp(key, propsOptions, propsData, vm);
       /* istanbul ignore else */
       {
@@ -4752,9 +4808,13 @@
 
   function initData (vm) {
     var data = vm.$options.data;
+    // data 有可能是函数的情况，获取 data
     data = vm._data = typeof data === 'function'
       ? getData(data, vm)
       : data || {};
+
+
+    // 处理 data 不是对象的情况
     if (!isPlainObject(data)) {
       data = {};
        warn(
@@ -4763,6 +4823,7 @@
         vm
       );
     }
+
     // proxy data on instance
     var keys = Object.keys(data);
     var props = vm.$options.props;
@@ -4770,6 +4831,7 @@
     var i = keys.length;
     while (i--) {
       var key = keys[i];
+      // 保证 props, methods 中没有与 data 中有重复key
       {
         if (methods && hasOwn(methods, key)) {
           warn(
@@ -4785,6 +4847,8 @@
           vm
         );
       } else if (!isReserved(key)) {
+        // key 不是以 $ 开头的 ，到这里。
+        // 将 data 所定义的数据添加 this 实例上，借助 Object.defineProperty 进行数据劫持。当方位 this.xxx 时候 去this._data 中查找
         proxy(vm, "_data", key);
       }
     }
@@ -5044,33 +5108,60 @@
         mark(startTag);
       }
 
+      // 如果是 Vue 实例不需要被 observe
       // a flag to avoid this being observed
       vm._isVue = true;
+
+      // 合并 options 
+      // vm.$options = Vue.options + new Vue 时传入的 options
       // merge options
       if (options && options._isComponent) {
-        // optimize internal component instantiation
+        // 是组件的情况
+        // optimize i nternal component instantiation
         // since dynamic options merging is pretty slow, and none of the
         // internal component options needs special treatment.
         initInternalComponent(vm, options);
       } else {
+        // 非组件的情况
         vm.$options = mergeOptions(
           resolveConstructorOptions(vm.constructor),
           options || {},
           vm
         );
       }
+
+      // 给实例设置渲染时候的代理对象
       /* istanbul ignore else */
       {
+        // 如果在开发环境 会将调用  vm._renderProxy = new Proxy(vm, handler) 转换为代理对象
+        // 如果有options.render && options.render._withStripped
+        // 会对 has ，get 操作进行劫持，后面在了解
         initProxy(vm);
       }
+
+      // 暴露 自身实例
       // expose real self
       vm._self = vm;
+      // 初始化与生命周期相关的实例变量
+      // $parent（将当前实例添加到 parent.$children里面）,$root, $children,$refs
       initLifecycle(vm);
+
+      // 初始化当前组件 _events 事件中心，拿到父组件的所有监听器，通过@xxxx 注册的
       initEvents(vm);
+
+      // RJ
+      // vm 的编译render初始化     
+      // $slots/$scopedSlots/_c/$createElement/$attrs/$listeners
       initRender(vm);
       callHook(vm, 'beforeCreate');
+
+      // 把 inject 的成员注入到 vm 上
       initInjections(vm); // resolve injections before data/props
+
+      // 初始化 vm 的 _props/methods/_data/computed/watch
       initState(vm);
+
+      // 初始化 provide，给 vm._provide = 所定义的 provide
       initProvide(vm); // resolve provide after data/props
       callHook(vm, 'created');
 
@@ -5082,6 +5173,7 @@
       }
 
       if (vm.$options.el) {
+        // 挂载整个页面
         vm.$mount(vm.$options.el);
       }
     };
@@ -5156,24 +5248,24 @@
     this._init(options);
   }
 
-  // 给 Vue 实例添加成员 ， 如：方法, 属性
-  // 给 Vue 添加实例方法 _init
+  // # 给 Vue 实例添加成员 ， 如：方法, 属性
+  // - 给 Vue 添加实例方法 _init
   initMixin(Vue);
 
-  // 给 Vue 原型增加了：$data,$props 属性， $set,$delete,$watch 方法
+  // - 给 Vue 原型增加了：$data,$props 属性， $set,$delete,$watch 方法
   stateMixin(Vue);
 
-  // 初始化 Vue 事件机制（发布订阅）
+  // - 初始化 Vue 事件机制（发布订阅）
   // $on $once $off $emit
   eventsMixin(Vue);
 
-  // 初始化生命周期的相关方法
+  // - 初始化生命周期的相关方法
   // _update， $forceUpdate, $destory
   lifecycleMixin(Vue);
 
-  // 混入 render 
-  // 该方法的作用调用用户传入的render
-  // $nextTick/_render
+  // - 给实例增加一些渲染的帮助方法
+  // vm._render 该方法的作用调用用户传入的render，生成虚拟dom返回
+  // $nextTick/
   renderMixin(Vue);
 
   /*  */

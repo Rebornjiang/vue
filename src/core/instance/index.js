@@ -18,24 +18,24 @@ function Vue (options) {
   this._init(options)
 }
 
-// 给 Vue 实例添加成员 ， 如：方法, 属性
-// 给 Vue 添加实例方法 _init
+// # 给 Vue 实例添加成员 ， 如：方法, 属性
+// - 给 Vue 添加实例方法 _init
 initMixin(Vue)
 
-// 给 Vue 原型增加了：$data,$props 属性， $set,$delete,$watch 方法
+// - 给 Vue 原型增加了：$data,$props 属性， $set,$delete,$watch 方法
 stateMixin(Vue)
 
-// 初始化 Vue 事件机制（发布订阅）
+// - 初始化 Vue 事件机制（发布订阅）
 // $on $once $off $emit
 eventsMixin(Vue)
 
-// 初始化生命周期的相关方法
+// - 初始化生命周期的相关方法
 // _update， $forceUpdate, $destory
 lifecycleMixin(Vue)
 
-// 混入 render 
-// 该方法的作用调用用户传入的render
-// $nextTick/_render
+// - 给实例增加一些渲染的帮助方法
+// vm._render 该方法的作用调用用户传入的render，生成虚拟dom返回
+// $nextTick/
 renderMixin(Vue)
 
 export default Vue

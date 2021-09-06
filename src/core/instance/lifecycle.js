@@ -34,16 +34,27 @@ export function initLifecycle (vm: Component) {
 
   // locate first non-abstract parent
   let parent = options.parent
+
+  // 当前组件如果有父组件且父组件不为抽象组件，将当前组件添加到父组件 $children 属性里
   if (parent && !options.abstract) {
+
+    // 这个循环的作用：
+    // 查找非抽象父组件
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
+    // 将当前组件添加到父组件children中
     parent.$children.push(vm)
   }
 
+
+  // 设置父组件
   vm.$parent = parent
+
+  // 设置根组件
   vm.$root = parent ? parent.$root : vm
 
+  // 初始化一些属性
   vm.$children = []
   vm.$refs = {}
 
@@ -56,12 +67,17 @@ export function initLifecycle (vm: Component) {
 }
 
 export function lifecycleMixin (Vue: Class<Component>) {
-  // _update 方法的作用是把 VNode 渲染成真实的 DOM
+  // _update 方法的作用是把 VNode 渲染成真实的 DOM，其实就是调用 patch 函数
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
+    // 取到之前的虚拟dom， elm
     const prevEl = vm.$el
     const prevVnode = vm._vnode
+
+    // 取到设置当前 组件 为活跃组件
     const restoreActiveInstance = setActiveInstance(vm)
+
+    
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
@@ -75,14 +91,18 @@ export function lifecycleMixin (Vue: Class<Component>) {
       // updates
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
+
+    // 设置为活跃组件
     restoreActiveInstance()
     // update __vue__ reference
+    // 更新 _vue_ 的引用
     if (prevEl) {
       prevEl.__vue__ = null
     }
     if (vm.$el) {
       vm.$el.__vue__ = vm
     }
+    
     // if parent is an HOC, update its $el as well
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
@@ -91,6 +111,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // updated in a parent's updated hook.
   }
 
+
   Vue.prototype.$forceUpdate = function () {
     const vm: Component = this
     if (vm._watcher) {
@@ -98,6 +119,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
   }
 
+  // 组件卸载，清除监听，事件，删除dom元素
   Vue.prototype.$destroy = function () {
     const vm: Component = this
     if (vm._isBeingDestroyed) {
@@ -105,11 +127,15 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
     callHook(vm, 'beforeDestroy')
     vm._isBeingDestroyed = true
+
+    // 从父组件的 children 属性中 移除当前卸载的组件
     // remove self from parent
     const parent = vm.$parent
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
+
+    // 移除监听
     // teardown watchers
     if (vm._watcher) {
       vm._watcher.teardown()
@@ -129,12 +155,15 @@ export function lifecycleMixin (Vue: Class<Component>) {
     vm.__patch__(vm._vnode, null)
     // fire destroyed hook
     callHook(vm, 'destroyed')
+
+    // 移除所有的实例的监听事件 this._events
     // turn off all instance listeners.
     vm.$off()
     // remove __vue__ reference
     if (vm.$el) {
       vm.$el.__vue__ = null
     }
+
     // release circular reference (#6759)
     if (vm.$vnode) {
       vm.$vnode.parent = null
