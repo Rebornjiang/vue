@@ -7,6 +7,7 @@ import config from '../config'
 let uid = 0
 
 /**
+ * {a： 1 ， b:2}
  * A dep is an observable that can have multiple
  * directives subscribing to it.
  */
@@ -38,6 +39,7 @@ export default class Dep {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
     if (process.env.NODE_ENV !== 'production' && !config.async) {
+
       // subs aren't sorted in scheduler if not running async
       // we need to sort them now to make sure they fire in correct
       // order
@@ -49,6 +51,8 @@ export default class Dep {
   }
 }
 
+// Dep.target 用来存放目前正在使用的watcher
+// 全局唯一的，并且一次只能够有一个 watcher 被使用
 // The current target watcher being evaluated.
 // This is globally unique because only one watcher
 // can be evaluated at a time.

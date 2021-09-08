@@ -159,13 +159,13 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
-      // key 不是以 $ 开头的 ，到这里。
+      // key 不是以 $ _ 开头的 ，到这里。
       // 将 data 所定义的数据添加 this 实例上，借助 Object.defineProperty 进行数据劫持。当方位 this.xxx 时候 去this._data 中查找
       proxy(vm, `_data`, key)
     }
   }
   // observe data
-  observe(data, true /* asRootData */)
+  observe(data, true /* asRootData （表示 根 数据） */)
 }
 
 export function getData (data: Function, vm: Component): any {

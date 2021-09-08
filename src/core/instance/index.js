@@ -33,7 +33,7 @@ eventsMixin(Vue)
 // _update， $forceUpdate, $destory
 lifecycleMixin(Vue)
 
-// - 给实例增加一些渲染的帮助方法
+// -给实例增加一些渲染的帮助方法
 // vm._render 该方法的作用调用用户传入的render，生成虚拟dom返回
 // $nextTick/
 renderMixin(Vue)

@@ -508,13 +508,26 @@
   /**
    * Parse simple path.
    */
+  // 这个正则表示如果patch不能以 /^someSymbol.$/,  _, $ , \d 开头
+  // patch 需要符合命名规则
+  // 以下情况不符合规则:
+  // obj.
+  // obj._name
+  // $name
+  // 3sss
   var bailRE = new RegExp(("[^" + (unicodeRegExp.source) + ".$_\\d]"));
   function parsePath (path) {
     if (bailRE.test(path)) {
       return
     }
+
+    // 符合规则的
     var segments = path.split('.');
+
+    // data = {obj:{name: 'reborn'}}
     return function (obj) {
+      // 多次循环最终就能够获取到 xxx.xxx.xx 最后的值
+
       for (var i = 0; i < segments.length; i++) {
         if (!obj) { return }
         obj = obj[segments[i]];
@@ -713,6 +726,7 @@
   var uid = 0;
 
   /**
+   * {a： 1 ， b:2}
    * A dep is an observable that can have multiple
    * directives subscribing to it.
    */
@@ -739,6 +753,7 @@
     // stabilize the subscriber list first
     var subs = this.subs.slice();
     if ( !config.async) {
+
       // subs aren't sorted in scheduler if not running async
       // we need to sort them now to make sure they fire in correct
       // order
@@ -749,6 +764,8 @@
     }
   };
 
+  // Dep.target 用来存放目前正在使用的watcher
+  // 全局唯一的，并且一次只能够有一个 watcher 被使用
   // The current target watcher being evaluated.
   // This is globally unique because only one watcher
   // can be evaluated at a time.
@@ -878,13 +895,19 @@
    */
   methodsToPatch.forEach(function (method) {
     // cache original method
+    // 获取数组的原始方法
     var original = arrayProto[method];
+
+    // 重写数组的方法
     def(arrayMethods, method, function mutator () {
       var args = [], len = arguments.length;
       while ( len-- ) args[ len ] = arguments[ len ];
 
+      // this 为数组(data中的数据)
       var result = original.apply(this, args);
       var ob = this.__ob__;
+
+      // inserted 用于存储数组操作增加的元素
       var inserted;
       switch (method) {
         case 'push':
@@ -895,6 +918,8 @@
           inserted = args.slice(2);
           break
       }
+
+      // 
       if (inserted) { ob.observeArray(inserted); }
       // notify change
       ob.dep.notify();
@@ -926,15 +951,23 @@
     this.value = value;
     this.dep = new Dep();
     this.vmCount = 0;
+    // 通过 Object.defineProperty 给 value 添加一个 _ob_ 属性 表明该对象已经通过 Observer 进行转换
     def(value, '__ob__', this);
     if (Array.isArray(value)) {
+      // 处理 value 为 数组的情况
+      // 当前 js 运行环境是否支持 __proto__ 这种语法
       if (hasProto) {
+        // protoAugment 该方法用给数组原型进行扩展
+        // arrayMethods 基于 Array.prototype 通过 Object.create() 创建的一个对象
+        // value.__proto__ = arrayMthods
+        // arrayMthods.__proto__ = Array.prototype
         protoAugment(value, arrayMethods);
       } else {
         copyAugment(value, arrayMethods, arrayKeys);
       }
       this.observeArray(value);
     } else {
+      // 处理 value 为对象
       this.walk(value);
     }
   };
@@ -990,17 +1023,22 @@
    * or the existing observer if the value already has one.
    */
   function observe (value, asRootData) {
+
     if (!isObject(value) || value instanceof VNode) {
       return
     }
+
     var ob;
+    // 如果 value 中有 _ob_ ，表明当前 value 已经通过 new Observer 生成了 ob 实例
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
       ob = value.__ob__;
     } else if (
       shouldObserve &&
       !isServerRendering() &&
+      // 只有 value 为数组或是普通对象才会进行处理。
       (Array.isArray(value) || isPlainObject(value)) &&
       Object.isExtensible(value) &&
+      // 判断 value 是否是 vue 实例， 如果是 vue 实例这不需要转换为响应式。
       !value._isVue
     ) {
       ob = new Observer(value);
@@ -1021,20 +1059,27 @@
     customSetter,
     shallow
   ) {
+    // 为data中每一个属性创建一个目标对象
     var dep = new Dep();
 
+    // 获取obj对象 key属性的描述
     var property = Object.getOwnPropertyDescriptor(obj, key);
+
+    // 如果获取不到描述或是该属性为不可配置则不将该属性转换为响应式
     if (property && property.configurable === false) {
       return
     }
 
+    // 满足预定义 getter/setter 的情况
     // cater for pre-defined getter/setters
     var getter = property && property.get;
     var setter = property && property.set;
+
     if ((!getter || setter) && arguments.length === 2) {
       val = obj[key];
     }
 
+    // 如果 data 中的属性为 {}, 继续调用 observe 将其转换为响应式对象
     var childOb = !shallow && observe(val);
     Object.defineProperty(obj, key, {
       enumerable: true,
@@ -1042,10 +1087,26 @@
       get: function reactiveGetter () {
         var value = getter ? getter.call(obj) : val;
         if (Dep.target) {
+          // 为当前访问的属性收集依赖
           dep.depend();
+          // childOb 存在表示当前属性的值也是一个对象
           if (childOb) {
+            // 为当前属性的值这个对象进行收集依赖
+            // 举一个例子:
+            /** 
+             * data = {
+             *  obj: {
+             *  name: 'rebor'
+             *    }
+             * }
+             * 
+             * dep.depend()  为 obj 属性收集依赖， 当obj = 1 通知属性的watcher 更新视图
+             * childOb.dep.depend() 为 {name: 'reborn'} 收集依赖，当 obj.name = 'molly' 通知watcher 更新视图
+             * */ 
             childOb.dep.depend();
             if (Array.isArray(value)) {
+              // 对 obj ： [] 这种情况进行处理
+               // 遍历数据中的每一个元素，如果该元素也是一个 ob 对象，则也要为其进行依赖收集。
               dependArray(value);
             }
           }
@@ -1054,22 +1115,32 @@
       },
       set: function reactiveSetter (newVal) {
         var value = getter ? getter.call(obj) : val;
+
+        // 新设置的值不能为 NaN
         /* eslint-disable no-self-compare */
         if (newVal === value || (newVal !== newVal && value !== value)) {
           return
         }
+
+        // 自定义 setter
         /* eslint-enable no-self-compare */
         if ( customSetter) {
           customSetter();
         }
+
         // #7981: for accessor properties without setter
         if (getter && !setter) { return }
+
+
         if (setter) {
           setter.call(obj, newVal);
         } else {
           val = newVal;
         }
+        // 赋值时为一个新对象
         childOb = !shallow && observe(newVal);
+
+        // 通知观察者进行更新视图
         dep.notify();
       }
     });
@@ -1148,6 +1219,7 @@
    * we cannot intercept array element access like property getters.
    */
   function dependArray (value) {
+    // 遍历数据中的每一个元素，如果该元素也是一个 ob 对象，则也要为其进行依赖收集。
     for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
       e = value[i];
       e && e.__ob__ && e.__ob__.dep.depend();
@@ -3969,7 +4041,7 @@
     }
   }
 
-  function initLifecycle (vm) {
+  function initLifecycle(vm) {
     var options = vm.$options;
 
     // locate first non-abstract parent
@@ -4006,7 +4078,7 @@
     vm._isBeingDestroyed = false;
   }
 
-  function lifecycleMixin (Vue) {
+  function lifecycleMixin(Vue) {
     // _update 方法的作用是把 VNode 渲染成真实的 DOM，其实就是调用 patch 函数
     Vue.prototype._update = function (vnode, hydrating) {
       var vm = this;
@@ -4017,7 +4089,7 @@
       // 取到设置当前 组件 为活跃组件
       var restoreActiveInstance = setActiveInstance(vm);
 
-      
+
       vm._vnode = vnode;
       // Vue.prototype.__patch__ is injected in entry points
       // based on the rendering backend used.
@@ -4042,7 +4114,7 @@
       if (vm.$el) {
         vm.$el.__vue__ = vm;
       }
-      
+
       // if parent is an HOC, update its $el as well
       if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
         vm.$parent.$el = vm.$el;
@@ -4111,7 +4183,8 @@
     };
   }
 
-  function mountComponent (
+  // vm.$mount 方法会调用此方法来挂载组件
+  function mountComponent(
     vm,
     el,
     hydrating
@@ -4119,7 +4192,7 @@
     // 需要挂载的dom元素
     vm.$el = el;
 
-    // 如果当前 组件实例 没有render函数，将render函数设置为创建空的虚拟dom
+    // 如果当前 没有 render 函数，将render函数设置为创建空的虚拟dom
     if (!vm.$options.render) {
       vm.$options.render = createEmptyVNode;
 
@@ -4166,6 +4239,7 @@
         measure(("vue " + name + " patch"), startTag, endTag);
       };
     } else {
+      // 更新组件，首次渲染 和 dep.notify 的时候会调用来更新视图
       updateComponent = function () {
         vm._update(vm._render(), hydrating);
       };
@@ -4175,7 +4249,7 @@
     // since the watcher's initial patch may call $forceUpdate (e.g. inside child
     // component's mounted hook), which relies on vm._watcher being already defined
     new Watcher(vm, updateComponent, noop, {
-      before: function before () {
+      before: function before() {
         if (vm._isMounted && !vm._isDestroyed) {
           callHook(vm, 'beforeUpdate');
         }
@@ -4192,7 +4266,7 @@
     return vm
   }
 
-  function updateChildComponent (
+  function updateChildComponent(
     vm,
     propsData,
     listeners,
@@ -4273,14 +4347,14 @@
     }
   }
 
-  function isInInactiveTree (vm) {
+  function isInInactiveTree(vm) {
     while (vm && (vm = vm.$parent)) {
       if (vm._inactive) { return true }
     }
     return false
   }
 
-  function activateChildComponent (vm, direct) {
+  function activateChildComponent(vm, direct) {
     if (direct) {
       vm._directInactive = false;
       if (isInInactiveTree(vm)) {
@@ -4298,7 +4372,7 @@
     }
   }
 
-  function deactivateChildComponent (vm, direct) {
+  function deactivateChildComponent(vm, direct) {
     if (direct) {
       vm._directInactive = true;
       if (isInInactiveTree(vm)) {
@@ -4314,7 +4388,7 @@
     }
   }
 
-  function callHook (vm, hook) {
+  function callHook(vm, hook) {
     // #7573 disable dep collection when invoking lifecycle hooks
     pushTarget();
     var handlers = vm.$options[hook];
@@ -4345,7 +4419,7 @@
   /**
    * Reset the scheduler's state.
    */
-  function resetSchedulerState () {
+  function resetSchedulerState() {
     index = queue.length = activatedChildren.length = 0;
     has = {};
     {
@@ -4388,11 +4462,16 @@
   /**
    * Flush both queues and run the watchers.
    */
-  function flushSchedulerQueue () {
+  function flushSchedulerQueue() {
     currentFlushTimestamp = getNow();
+    // 表示当前正在处理 watcher 队列
     flushing = true;
     var watcher, id;
 
+    // 在flush 之前进行排序的原因
+    // 1. 组件的更新是从父组件到子组件(父组件总是在子组件之前创建的)
+    // 2. 组件的用户watcher 是在 渲染watcher 之前 run
+    // 3. 如果一个组件在父组件的watcher run 之前被销毁，那么这个watcher 应该被跳过。
     // Sort queue before flush.
     // This ensures that:
     // 1. Components are updated from parent to child. (because parent is always
@@ -4401,17 +4480,24 @@
     //    user watchers are created before the render watcher)
     // 3. If a component is destroyed during a parent component's watcher run,
     //    its watchers can be skipped.
+    // 按照 watcher 先后创建时间进行排序
     queue.sort(function (a, b) { return a.id - b.id; });
 
     // do not cache length because more watchers might be pushed
     // as we run existing watchers
+    // 不要缓存 队列的length属性，因为在run已经存在的watcher的时候还有可能会添加watcher
     for (index = 0; index < queue.length; index++) {
+      
       watcher = queue[index];
+
+      // 如果 watcher 有 before 这个属性，调用 beforeUpdate 钩子函数  
       if (watcher.before) {
         watcher.before();
       }
       id = watcher.id;
+      // 当前watcher 调用run 之后(watcher执行之后)， 要将watcher id 设置为null，使得watcher 在下一次还可以执行。
       has[id] = null;
+      // 调用watcher的run 方法
       watcher.run();
       // in dev build, check and stop circular updates.
       if ( has[id] != null) {
@@ -4447,7 +4533,7 @@
     }
   }
 
-  function callUpdatedHooks (queue) {
+  function callUpdatedHooks(queue) {
     var i = queue.length;
     while (i--) {
       var watcher = queue[i];
@@ -4462,14 +4548,14 @@
    * Queue a kept-alive component that was activated during patch.
    * The queue will be processed after the entire tree has been patched.
    */
-  function queueActivatedComponent (vm) {
+  function queueActivatedComponent(vm) {
     // setting _inactive to false here so that a render function can
     // rely on checking whether it's in an inactive tree (e.g. router-view)
     vm._inactive = false;
     activatedChildren.push(vm);
   }
 
-  function callActivatedHooks (queue) {
+  function callActivatedHooks(queue) {
     for (var i = 0; i < queue.length; i++) {
       queue[i]._inactive = true;
       activateChildComponent(queue[i], true /* true */);
@@ -4481,10 +4567,13 @@
    * Jobs with duplicate IDs will be skipped unless it's
    * pushed when the queue is being flushed.
    */
-  function queueWatcher (watcher) {
+  function queueWatcher(watcher) {
     var id = watcher.id;
+    // has 为一个对象，如果一个watcher 被处理之后会将 has[wathcerId] = true
     if (has[id] == null) {
       has[id] = true;
+
+      // flushing = true,表明当前队列正在被处理，否则反之。
       if (!flushing) {
         queue.push(watcher);
       } else {
@@ -4496,11 +4585,14 @@
         }
         queue.splice(i + 1, 0, watcher);
       }
+
       // queue the flush
+      // waiting  =  false 表明当前队列没有被执行
       if (!waiting) {
         waiting = true;
 
         if ( !config.async) {
+          // 在flushSchedulerQueue 这个函数中会遍历所有的 watcher 队列，并且调用每个watcher 的 run 方法
           flushSchedulerQueue();
           return
         }
@@ -4523,7 +4615,7 @@
   var Watcher = function Watcher (
     vm,
     expOrFn,
-    cb,
+    cb, 
     options,
     isRenderWatcher
   ) {
@@ -4531,6 +4623,8 @@
     if (isRenderWatcher) {
       vm._watcher = this;
     }
+
+    // computed Watch, watcher 侦听器， render Watcher
     vm._watchers.push(this);
     // options
     if (options) {
@@ -4538,24 +4632,33 @@
       this.user = !!options.user;
       this.lazy = !!options.lazy;
       this.sync = !!options.sync;
+      // 用于存储 beforeUpdate callHook
       this.before = options.before;
     } else {
       this.deep = this.user = this.lazy = this.sync = false;
     }
     this.cb = cb;
+    // 每创建一个 watcher 都会有一个 id， id越小表明创建时间越早
     this.id = ++uid$1; // uid for batching
+    // 表明当前watcher为活跃watcher
     this.active = true;
     this.dirty = this.lazy; // for lazy watchers
+
+    // ??? 为什么 watcher 中要记录 许多与 dep 相关的变量
     this.deps = [];
     this.newDeps = [];
     this.depIds = new _Set();
     this.newDepIds = new _Set();
+
     this.expression =  expOrFn.toString()
       ;
+
     // parse expression for getter
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn;
     } else {
+      // expOrFn , 如果是表达式则表明是 watcher 侦听器
+      // this.getter 用于获取最所监听的最后的值如：obj.name, 所需要的参数为 obj 所在的对象
       this.getter = parsePath(expOrFn);
       if (!this.getter) {
         this.getter = noop;
@@ -4576,12 +4679,18 @@
    * Evaluate the getter, and re-collect dependencies.
    */
   Watcher.prototype.get = function get () {
+    // 将当前watcher 添加到 watcherStack中，并将 Dep.target = 当前watcher
     pushTarget(this);
     var value;
     var vm = this.vm;
     try {
+      // 无论什么类型的 watcher this.getter 都会执行一次
+      // 对于渲染watcher 他会调用 updateComponent， 对于用户watcher 他会获取值并触发get操作。
+      // 组件定义的computed ={ getTotal() { return this.num1 + this.num2 }}
+      // 当访问 this.num1 或是 this.num2 的时候就会触发 get操作
       value = this.getter.call(vm, vm);
     } catch (e) {
+      // 用户传递的getter 可能会造成错误，捕获错误进行处理
       if (this.user) {
         handleError(e, vm, ("getter for watcher \"" + (this.expression) + "\""));
       } else {
@@ -4590,9 +4699,12 @@
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 用于处理深度监听的情况
       if (this.deep) {
         traverse(value);
       }
+
+      // 将当前 watcher 弹出栈 并将 Dep.target = null
       popTarget();
       this.cleanupDeps();
     }
@@ -4602,8 +4714,11 @@
   /**
    * Add a dependency to this directive.
    */
+  // 将 watcher 添加到 dep.subs 里面
   Watcher.prototype.addDep = function addDep (dep) {
+    // dep 为当前依赖(某个属性，目标对象)
     var id = dep.id;
+    // this.newDepIds, this.newDeps 是为了避免为某个dep 重复添加 watcher
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id);
       this.newDeps.push(dep);
@@ -4654,7 +4769,12 @@
    * Will be called by the scheduler.
    */
   Watcher.prototype.run = function run () {
+    // active 表示当前 watcher 的状态是存活的状态
     if (this.active) {
+      // 渲染 watcher 是没有返回值
+      // 用户 watcher 会有返回值:
+      // - computedWatcher
+      // - 侦听器 watcher
       var value = this.get();
       if (
         value !== this.value ||
@@ -4671,6 +4791,7 @@
           var info = "callback for watcher \"" + (this.expression) + "\"";
           invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info);
         } else {
+          // 渲染 wathcer ，cb 传入的 noop
           this.cb.call(this.vm, value, oldValue);
         }
       }
@@ -4847,13 +4968,13 @@
           vm
         );
       } else if (!isReserved(key)) {
-        // key 不是以 $ 开头的 ，到这里。
+        // key 不是以 $ _ 开头的 ，到这里。
         // 将 data 所定义的数据添加 this 实例上，借助 Object.defineProperty 进行数据劫持。当方位 this.xxx 时候 去this._data 中查找
         proxy(vm, "_data", key);
       }
     }
     // observe data
-    observe(data, true /* asRootData */);
+    observe(data, true /* asRootData （表示 根 数据） */);
   }
 
   function getData (data, vm) {
@@ -5131,6 +5252,7 @@
       }
 
       // 给实例设置渲染时候的代理对象
+      // 此处的代理渲染代理对象会在调用 _render.call(_renderProxy) 传入
       /* istanbul ignore else */
       {
         // 如果在开发环境 会将调用  vm._renderProxy = new Proxy(vm, handler) 转换为代理对象
@@ -5263,7 +5385,7 @@
   // _update， $forceUpdate, $destory
   lifecycleMixin(Vue);
 
-  // - 给实例增加一些渲染的帮助方法
+  // -给实例增加一些渲染的帮助方法
   // vm._render 该方法的作用调用用户传入的render，生成虚拟dom返回
   // $nextTick/
   renderMixin(Vue);

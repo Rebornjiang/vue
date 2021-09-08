@@ -27,7 +27,7 @@ let uid = 0
 export default class Watcher {
   vm: Component;
   expression: string;
-  cb: Function;
+  cb: Function; // 用于用户 watcher。 侦听器的回调函数, watcher: {name: { handler() {}}} , cb = handler
   id: number;
   deep: boolean;
   user: boolean;
@@ -41,12 +41,12 @@ export default class Watcher {
   newDepIds: SimpleSet;
   before: ?Function;
   getter: Function;
-  value: any;
+  value: any;// 用于用户 watcher。 记录用户 watcher 执行之后的结果。
 
   constructor (
     vm: Component,
     expOrFn: string | Function,
-    cb: Function,
+    cb: Function, 
     options?: ?Object,
     isRenderWatcher?: boolean
   ) {
@@ -54,6 +54,8 @@ export default class Watcher {
     if (isRenderWatcher) {
       vm._watcher = this
     }
+
+    // computed Watch, watcher 侦听器， render Watcher
     vm._watchers.push(this)
     // options
     if (options) {
@@ -61,25 +63,34 @@ export default class Watcher {
       this.user = !!options.user
       this.lazy = !!options.lazy
       this.sync = !!options.sync
+      // 用于存储 beforeUpdate callHook
       this.before = options.before
     } else {
       this.deep = this.user = this.lazy = this.sync = false
     }
     this.cb = cb
+    // 每创建一个 watcher 都会有一个 id， id越小表明创建时间越早
     this.id = ++uid // uid for batching
+    // 表明当前watcher为活跃watcher
     this.active = true
     this.dirty = this.lazy // for lazy watchers
+
+    // ??? 为什么 watcher 中要记录 许多与 dep 相关的变量
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
+
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
+
     // parse expression for getter
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // expOrFn , 如果是表达式则表明是 watcher 侦听器
+      // this.getter 用于获取最所监听的最后的值如：obj.name, 所需要的参数为 obj 所在的对象
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = noop
@@ -100,12 +111,18 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    // 将当前watcher 添加到 watcherStack中，并将 Dep.target = 当前watcher
     pushTarget(this)
     let value
     const vm = this.vm
     try {
+      // 无论什么类型的 watcher this.getter 都会执行一次
+      // 对于渲染watcher 他会调用 updateComponent， 对于用户watcher 他会获取值并触发get操作。
+      // 组件定义的computed =  { getTotal() { return this.num1 + this.num2 }}
+      // 当访问 this.num1 或是 this.num2 的时候就会触发 get操作
       value = this.getter.call(vm, vm)
     } catch (e) {
+      // 用户传递的getter 可能会造成错误，捕获错误进行处理
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
@@ -114,9 +131,12 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 用于处理深度监听的情况
       if (this.deep) {
         traverse(value)
       }
+
+      // 将当前 watcher 弹出栈 并将 Dep.target = null
       popTarget()
       this.cleanupDeps()
     }
@@ -126,8 +146,11 @@ export default class Watcher {
   /**
    * Add a dependency to this directive.
    */
+  // 将 watcher 添加到 dep.subs 里面
   addDep (dep: Dep) {
+    // dep 为当前依赖(某个属性，目标对象)
     const id = dep.id
+    // this.newDepIds, this.newDeps 是为了避免为某个dep 重复添加 watcher
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
@@ -178,7 +201,12 @@ export default class Watcher {
    * Will be called by the scheduler.
    */
   run () {
+    // active 表示当前 watcher 的状态是存活的状态
     if (this.active) {
+      // 渲染 watcher 是没有返回值
+      // 用户 watcher 会有返回值:
+      // - computedWatcher
+      // - 侦听器 watcher
       const value = this.get()
       if (
         value !== this.value ||
@@ -195,6 +223,7 @@ export default class Watcher {
           const info = `callback for watcher "${this.expression}"`
           invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info)
         } else {
+          // 渲染 wathcer ，cb 传入的 noop
           this.cb.call(this.vm, value, oldValue)
         }
       }

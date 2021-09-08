@@ -51,6 +51,7 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // 给实例设置渲染时候的代理对象
+    // 此处的代理渲染代理对象会在调用 _render.call(_renderProxy) 传入
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
       // 如果在开发环境 会将调用  vm._renderProxy = new Proxy(vm, handler) 转换为代理对象

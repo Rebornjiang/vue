@@ -30,13 +30,26 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
 /**
  * Parse simple path.
  */
+// 这个正则表示如果patch不能以 /^someSymbol.$/,  _, $ , \d 开头
+// patch 需要符合命名规则
+// 以下情况不符合规则:
+// obj.
+// obj._name
+// $name
+// 3sss
 const bailRE = new RegExp(`[^${unicodeRegExp.source}.$_\\d]`)
 export function parsePath (path: string): any {
   if (bailRE.test(path)) {
     return
   }
+
+  // 符合规则的
   const segments = path.split('.')
+
+  // data = {obj:{name: 'reborn'}}
   return function (obj) {
+    // 多次循环最终就能够获取到 xxx.xxx.xx 最后的值
+
     for (let i = 0; i < segments.length; i++) {
       if (!obj) return
       obj = obj[segments[i]]

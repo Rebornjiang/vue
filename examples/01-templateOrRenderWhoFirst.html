@@ -12,18 +12,25 @@
 <body>
 
   <div id="app">
+    <h1>name: {{name}}</h1>
+    <h1>age: {{age}}</h1>
+    <h1>hobby1: {{hobby.one}}</h1>
+    <h1>hobby2: {{hobby.two}}</h1>
 
   </div>
 
-  <div id="app2"></div>
   <script>
 
 
     const vm = new Vue({
       el: '#app',
-      template: '<h1>hello Template</h1>',
-      render(h) {
-        return h('h1', 'hello Render')
+      data: {
+        name: 'reborn',
+        age: 18,
+        hobby: {
+          one: 'playGame',
+          two: 'playBall'
+        }
       }
     })
 
