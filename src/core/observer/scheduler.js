@@ -126,10 +126,14 @@ function flushSchedulerQueue() {
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
 
+  // 重置 watcherQueue
   resetSchedulerState()
 
   // call component updated and activated hooks
+  // 被 keep-alive 缓存的组件激活时调用。
   callActivatedHooks(activatedQueue)
+
+  //  在渲染 watcher 更新后，是所有渲染watcher 触发 updated 钩子函数
   callUpdatedHooks(updatedQueue)
 
   // devtool hook
@@ -144,6 +148,7 @@ function callUpdatedHooks(queue) {
   while (i--) {
     const watcher = queue[i]
     const vm = watcher.vm
+    // vm._watcher 只有渲染 watcher 会有
     if (vm._watcher === watcher && vm._isMounted && !vm._isDestroyed) {
       callHook(vm, 'updated')
     }
@@ -161,6 +166,7 @@ export function queueActivatedComponent(vm: Component) {
   activatedChildren.push(vm)
 }
 
+// 被 keep-alive 缓存的组件激活时调用。
 function callActivatedHooks(queue) {
   for (let i = 0; i < queue.length; i++) {
     queue[i]._inactive = true
@@ -175,11 +181,13 @@ function callActivatedHooks(queue) {
  */
 export function queueWatcher(watcher: Watcher) {
   const id = watcher.id
-  // has 为一个对象，如果一个watcher 被处理之后会将 has[wathcerId] = true
+  // has 为一个对象存储正在处理的watcher
+  // 如果一个 watcher 被处理时会将 has[wathcerId] = true
+  // 处理完成之后会将 has[watcherId] = null
   if (has[id] == null) {
     has[id] = true
 
-    // flushing = true,表明当前队列正在被处理，否则反之。
+    // flushing = true,表明当前队列正在被处理（调用了 flushScheduler），否则反之。
     if (!flushing) {
       queue.push(watcher)
     } else {
@@ -196,12 +204,16 @@ export function queueWatcher(watcher: Watcher) {
     // waiting  =  false 表明当前队列没有被执行
     if (!waiting) {
       waiting = true
-
+      // 关闭 异步更新
       if (process.env.NODE_ENV !== 'production' && !config.async) {
         // 在flushSchedulerQueue 这个函数中会遍历所有的 watcher 队列，并且调用每个watcher 的 run 方法
         flushSchedulerQueue()
         return
       }
+
+      // Vue 默认的更新 DOM 是异步进行操作，
+      // 因为使用了nextTick ，flushSchedulerQueue 这里的代码并不会立即执行，他会等所有的同步任务执行结束之后
+      // 才会调用 flushSchedulerQueue 来更新视图
       nextTick(flushSchedulerQueue)
     }
   }

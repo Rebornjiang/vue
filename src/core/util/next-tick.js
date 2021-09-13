@@ -7,12 +7,14 @@ import { isIE, isIOS, isNative } from './env'
 
 export let isUsingMicroTask = false
 
+// 用于存储 nextTick(cb) 
 const callbacks = []
 let pending = false
 
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
+  
   callbacks.length = 0
   for (let i = 0; i < copies.length; i++) {
     copies[i]()
@@ -39,9 +41,12 @@ let timerFunc
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
+// 当前执行环境支持 promise
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
+  // 创建一个成功 promise 对象
   const p = Promise.resolve()
   timerFunc = () => {
+    // 微任务
     p.then(flushCallbacks)
     // In problematic UIWebViews, Promise.then doesn't completely break, but
     // it can get stuck in a weird state where callbacks are pushed into the

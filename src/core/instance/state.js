@@ -310,10 +310,12 @@ function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]
     if (Array.isArray(handler)) {
+      // 数组 [function cb(newVal, oldVal) {},'cbFromMethods'（methods 中的函数）, {handler(newVal, oldVal) {}, depp: true, immediatly}]
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
       }
     } else {
+      // 函数或是对象
       createWatcher(vm, key, handler)
     }
   }
@@ -325,13 +327,16 @@ function createWatcher (
   handler: any,
   options?: Object
 ) {
+  // 对象的情况 {handler(newVal, oldVal) {}, depp: true, immediatly}
   if (isPlainObject(handler)) {
     options = handler
     handler = handler.handler
   }
+  // string 将会从 methods 中取回调
   if (typeof handler === 'string') {
     handler = vm[handler]
   }
+  // 如果既不是 object 也不是 string， handler 本身就是函数
   return vm.$watch(expOrFn, handler, options)
 }
 
@@ -373,19 +378,23 @@ export function stateMixin (Vue: Class<Component>) {
     cb: any,
     options?: Object
   ): Function {
-    // vm 是实例本身
+    // 获取 vm 实例，
     const vm: Component = this
 
-    // cb 是否是对象 {}
+    // 这里的cb为对象只能是用户 手动调用 vm.$watch 来创建的 watcher
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
 
     options = options || {}
 
-    // 标记为用户 watcher (应该指用户收到注册监听) RJ
+    // 标记为用户 watcher
     options.user = true
+
+    // 创建 watcher
     const watcher = new Watcher(vm, expOrFn, cb, options)
+
+    // 如果 添加了 immediate = true, 立即执行一遍回调函数
     if (options.immediate) {
       const info = `callback for immediate watcher "${watcher.expression}"`
       pushTarget()

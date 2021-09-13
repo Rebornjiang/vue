@@ -39,7 +39,7 @@ export default class Watcher {
   newDeps: Array<Dep>;
   depIds: SimpleSet;
   newDepIds: SimpleSet;
-  before: ?Function;
+  before: ?Function; // 用于渲染 watcher。 该before 函数目的是调用 beforeUpdated  钩子
   getter: Function;
   value: any;// 用于用户 watcher。 记录用户 watcher 执行之后的结果。
 
@@ -59,13 +59,14 @@ export default class Watcher {
     vm._watchers.push(this)
     // options
     if (options) {
-      this.deep = !!options.deep
-      this.user = !!options.user
+      this.deep = !!options.deep // 如果是 用户 watcher ，deep = true  可以开启对象的深度监听
+      this.user = !!options.user // 如果是 用户 watcher ， user = true。
       this.lazy = !!options.lazy
       this.sync = !!options.sync
       // 用于存储 beforeUpdate callHook
       this.before = options.before
     } else {
+      // 渲染 watcher 全部设置为 false
       this.deep = this.user = this.lazy = this.sync = false
     }
     this.cb = cb
@@ -75,7 +76,7 @@ export default class Watcher {
     this.active = true
     this.dirty = this.lazy // for lazy watchers
 
-    // ??? 为什么 watcher 中要记录 许多与 dep 相关的变量
+    // 为什么 watcher 中要记录 许多与 dep 相关的变量，这是可以直到当前 watcher 被那些 dep 进行依赖收集，避免重复执行 watcher.update()
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
@@ -89,8 +90,8 @@ export default class Watcher {
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
-      // expOrFn , 如果是表达式则表明是 watcher 侦听器
-      // this.getter 用于获取最所监听的最后的值如：obj.name, 所需要的参数为 obj 所在的对象
+      // parsePath 返回一个函数，用于获取最所监听的最后的值如：obj.name, 所需要的参数为 obj 所在的对象
+      // this.getter 
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = noop

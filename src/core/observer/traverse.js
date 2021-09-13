@@ -11,6 +11,7 @@ const seenObjects = new Set()
  * getters, so that every nested property inside the object
  * is collected as a "deep" dependency.
  */
+// obj.name = 'reborn'; val = reborn
 export function traverse (val: any) {
   _traverse(val, seenObjects)
   seenObjects.clear()

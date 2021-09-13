@@ -530,6 +530,9 @@
 
       for (var i = 0; i < segments.length; i++) {
         if (!obj) { return }
+        // obj 在第一次循环的时候是 vm ，第一次循环之后后续都不是vm。
+        // 如果没有开启深度监听，就无法监听 对象里面的属性的变化
+        // 因为只将只访问外层对象，触发get，给外层对象dep收集了依赖
         obj = obj[segments[i]];
       }
       return obj
@@ -1043,6 +1046,8 @@
     ) {
       ob = new Observer(value);
     }
+    // asRootData 为true 表明是 $data 对象，使 vmCount = 1 ,其余的响应式对象为 0。 
+    // 在 $set 方法有使用到该属性，用于不能够通过set 方法 给 vm 实例 或是 $data 添加成员
     if (asRootData && ob) {
       ob.vmCount++;
     }
@@ -1157,16 +1162,26 @@
     ) {
       warn(("Cannot set reactive property on undefined, null, or primitive value: " + ((target))));
     }
+    // 数组的处理方法
+    // isValidArrayIndex 校验 数组的索引是否符合规则
     if (Array.isArray(target) && isValidArrayIndex(key)) {
+      // 使用Math.max 方法是有可能传进来的  index  会比 数组的长度更大
       target.length = Math.max(target.length, key);
+      // 这个 targetSplice 是重写的数组的方法
       target.splice(key, 1, val);
       return val
     }
+
+    // 如果是 key 已经在响应式对象中存在，直接赋值
     if (key in target && !(key in Object.prototype)) {
       target[key] = val;
       return val
     }
+
+    // 每一个响应式对象中都会有 _ob_ 这个属性
     var ob = (target).__ob__;
+
+    // 不能够给 Vm 实例 和 $data 对象添加属性
     if (target._isVue || (ob && ob.vmCount)) {
        warn(
         'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -1174,12 +1189,19 @@
       );
       return val
     }
+
+    // 如果不是 响应式对象，直接给目标对象赋值
     if (!ob) {
       target[key] = val;
       return val
     }
+    // 调用defineReactive 将 新属性转换为响应式的
     defineReactive(ob.value, key, val);
+
+    // 主动通知依赖更新视图
     ob.dep.notify();
+
+    // 返回新添加的值
     return val
   }
 
@@ -2007,12 +2029,14 @@
 
   var isUsingMicroTask = false;
 
+  // 用于存储 nextTick(cb) 
   var callbacks = [];
   var pending = false;
 
   function flushCallbacks () {
     pending = false;
     var copies = callbacks.slice(0);
+    
     callbacks.length = 0;
     for (var i = 0; i < copies.length; i++) {
       copies[i]();
@@ -2039,9 +2063,12 @@
   // completely stops working after triggering a few times... so, if native
   // Promise is available, we will use it:
   /* istanbul ignore next, $flow-disable-line */
+  // 当前执行环境支持 promise
   if (typeof Promise !== 'undefined' && isNative(Promise)) {
+    // 创建一个成功 promise 对象
     var p = Promise.resolve();
     timerFunc = function () {
+      // 微任务
       p.then(flushCallbacks);
       // In problematic UIWebViews, Promise.then doesn't completely break, but
       // it can get stuck in a weird state where callbacks are pushed into the
@@ -2230,6 +2257,7 @@
    * getters, so that every nested property inside the object
    * is collected as a "deep" dependency.
    */
+  // obj.name = 'reborn'; val = reborn
   function traverse (val) {
     _traverse(val, seenObjects);
     seenObjects.clear();
@@ -4520,10 +4548,14 @@
     var activatedQueue = activatedChildren.slice();
     var updatedQueue = queue.slice();
 
+    // 重置 watcherQueue
     resetSchedulerState();
 
     // call component updated and activated hooks
+    // 被 keep-alive 缓存的组件激活时调用。
     callActivatedHooks(activatedQueue);
+
+    //  在渲染 watcher 更新后，是所有渲染watcher 触发 updated 钩子函数
     callUpdatedHooks(updatedQueue);
 
     // devtool hook
@@ -4538,6 +4570,7 @@
     while (i--) {
       var watcher = queue[i];
       var vm = watcher.vm;
+      // vm._watcher 只有渲染 watcher 会有
       if (vm._watcher === watcher && vm._isMounted && !vm._isDestroyed) {
         callHook(vm, 'updated');
       }
@@ -4555,6 +4588,7 @@
     activatedChildren.push(vm);
   }
 
+  // 被 keep-alive 缓存的组件激活时调用。
   function callActivatedHooks(queue) {
     for (var i = 0; i < queue.length; i++) {
       queue[i]._inactive = true;
@@ -4569,11 +4603,13 @@
    */
   function queueWatcher(watcher) {
     var id = watcher.id;
-    // has 为一个对象，如果一个watcher 被处理之后会将 has[wathcerId] = true
+    // has 为一个对象存储正在处理的watcher
+    // 如果一个 watcher 被处理时会将 has[wathcerId] = true
+    // 处理完成之后会将 has[watcherId] = null
     if (has[id] == null) {
       has[id] = true;
 
-      // flushing = true,表明当前队列正在被处理，否则反之。
+      // flushing = true,表明当前队列正在被处理（调用了 flushScheduler），否则反之。
       if (!flushing) {
         queue.push(watcher);
       } else {
@@ -4590,12 +4626,16 @@
       // waiting  =  false 表明当前队列没有被执行
       if (!waiting) {
         waiting = true;
-
+        // 关闭 异步更新
         if ( !config.async) {
           // 在flushSchedulerQueue 这个函数中会遍历所有的 watcher 队列，并且调用每个watcher 的 run 方法
           flushSchedulerQueue();
           return
         }
+
+        // Vue 默认的更新 DOM 是异步进行操作，
+        // 因为使用了nextTick ，flushSchedulerQueue 这里的代码并不会立即执行，他会等所有的同步任务执行结束之后
+        // 才会调用 flushSchedulerQueue 来更新视图
         nextTick(flushSchedulerQueue);
       }
     }
@@ -4628,13 +4668,14 @@
     vm._watchers.push(this);
     // options
     if (options) {
-      this.deep = !!options.deep;
-      this.user = !!options.user;
+      this.deep = !!options.deep; // 如果是 用户 watcher ，deep = true可以开启对象的深度监听
+      this.user = !!options.user; // 如果是 用户 watcher ， user = true。
       this.lazy = !!options.lazy;
       this.sync = !!options.sync;
       // 用于存储 beforeUpdate callHook
       this.before = options.before;
     } else {
+      // 渲染 watcher 全部设置为 false
       this.deep = this.user = this.lazy = this.sync = false;
     }
     this.cb = cb;
@@ -4644,7 +4685,7 @@
     this.active = true;
     this.dirty = this.lazy; // for lazy watchers
 
-    // ??? 为什么 watcher 中要记录 许多与 dep 相关的变量
+    // 为什么 watcher 中要记录 许多与 dep 相关的变量，这是可以直到当前 watcher 被那些 dep 进行依赖收集，避免重复执行 watcher.update()
     this.deps = [];
     this.newDeps = [];
     this.depIds = new _Set();
@@ -4657,8 +4698,8 @@
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn;
     } else {
-      // expOrFn , 如果是表达式则表明是 watcher 侦听器
-      // this.getter 用于获取最所监听的最后的值如：obj.name, 所需要的参数为 obj 所在的对象
+      // parsePath 返回一个函数，用于获取最所监听的最后的值如：obj.name, 所需要的参数为 obj 所在的对象
+      // this.getter 
       this.getter = parsePath(expOrFn);
       if (!this.getter) {
         this.getter = noop;
@@ -5119,10 +5160,12 @@
     for (var key in watch) {
       var handler = watch[key];
       if (Array.isArray(handler)) {
+        // 数组 [function cb(newVal, oldVal) {},'cbFromMethods'（methods 中的函数）, {handler(newVal, oldVal) {}, depp: true, immediatly}]
         for (var i = 0; i < handler.length; i++) {
           createWatcher(vm, key, handler[i]);
         }
       } else {
+        // 函数或是对象
         createWatcher(vm, key, handler);
       }
     }
@@ -5134,13 +5177,16 @@
     handler,
     options
   ) {
+    // 对象的情况 {handler(newVal, oldVal) {}, depp: true, immediatly}
     if (isPlainObject(handler)) {
       options = handler;
       handler = handler.handler;
     }
+    // string 将会从 methods 中取回调
     if (typeof handler === 'string') {
       handler = vm[handler];
     }
+    // 如果既不是 object 也不是 string， handler 本身就是函数
     return vm.$watch(expOrFn, handler, options)
   }
 
@@ -5182,19 +5228,23 @@
       cb,
       options
     ) {
-      // vm 是实例本身
+      // 获取 vm 实例，
       var vm = this;
 
-      // cb 是否是对象 {}
+      // 这里的cb为对象只能是用户 手动调用 vm.$watch 来创建的 watcher
       if (isPlainObject(cb)) {
         return createWatcher(vm, expOrFn, cb, options)
       }
 
       options = options || {};
 
-      // 标记为用户 watcher (应该指用户收到注册监听) RJ
+      // 标记为用户 watcher
       options.user = true;
+
+      // 创建 watcher
       var watcher = new Watcher(vm, expOrFn, cb, options);
+
+      // 如果 添加了 immediate = true, 立即执行一遍回调函数
       if (options.immediate) {
         var info = "callback for immediate watcher \"" + (watcher.expression) + "\"";
         pushTarget();
@@ -5762,7 +5812,7 @@
     // 初始化 Vue.config 对象, 在 runtime/index.js 有给 Vue.config 对象里面添加一些方法
     Object.defineProperty(Vue, 'config', configDef);
 
-    // 给 Vue 增加 util 对象，里面是 要使用的工具发给发
+    // 给 Vue 增加 util 对象
     // exposed util methods.
     // NOTE: these are not considered part of the public API - avoid relying on
     // them unless you are aware of the risk.

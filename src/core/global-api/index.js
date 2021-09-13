@@ -35,7 +35,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // 初始化 Vue.config 对象, 在 runtime/index.js 有给 Vue.config 对象里面添加一些方法
   Object.defineProperty(Vue, 'config', configDef)
 
-  // 给 Vue 增加 util 对象，里面是 要使用的工具发给发
+  // 给 Vue 增加 util 对象
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.

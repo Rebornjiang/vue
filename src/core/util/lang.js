@@ -52,6 +52,9 @@ export function parsePath (path: string): any {
 
     for (let i = 0; i < segments.length; i++) {
       if (!obj) return
+      // obj 在第一次循环的时候是 vm ，第一次循环之后后续都不是vm。
+      // 如果没有开启深度监听，就无法监听 对象里面的属性的变化
+      // 因为只将只访问外层对象，触发get，给外层对象dep收集了依赖
       obj = obj[segments[i]]
     }
     return obj

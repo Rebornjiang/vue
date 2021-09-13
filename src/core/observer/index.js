@@ -136,6 +136,8 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   ) {
     ob = new Observer(value)
   }
+  // asRootData 为true 表明是 $data 对象，使 vmCount = 1 ,其余的响应式对象为 0。 
+  // 在 $set 方法有使用到该属性，用于不能够通过set 方法 给 vm 实例 或是 $data 添加成员
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -250,16 +252,26 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  // 数组的处理方法
+  // isValidArrayIndex 校验 数组的索引是否符合规则
   if (Array.isArray(target) && isValidArrayIndex(key)) {
+    // 使用Math.max 方法是有可能传进来的  index  会比 数组的长度更大
     target.length = Math.max(target.length, key)
+    // 这个 targetSplice 是重写的数组的方法
     target.splice(key, 1, val)
     return val
   }
+
+  // 如果是 key 已经在响应式对象中存在，直接赋值
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
   }
+
+  // 每一个响应式对象中都会有 _ob_ 这个属性
   const ob = (target: any).__ob__
+
+  // 不能够给 Vm 实例 和 $data 对象添加属性
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -267,12 +279,19 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
+
+  // 如果不是 响应式对象，直接给目标对象赋值
   if (!ob) {
     target[key] = val
     return val
   }
+  // 调用defineReactive 将 新属性转换为响应式的
   defineReactive(ob.value, key, val)
+
+  // 主动通知依赖更新视图
   ob.dep.notify()
+
+  // 返回新添加的值
   return val
 }
 
