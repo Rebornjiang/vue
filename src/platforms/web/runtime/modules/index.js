@@ -5,11 +5,12 @@ import domProps from './dom-props'
 import style from './style'
 import transition from './transition'
 
+// baseModules
 export default [
   attrs,
   klass,
   events,
   domProps,
   style,
-  transition
+  transition // 用于处理过渡动画的模块
 ]

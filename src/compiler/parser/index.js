@@ -205,6 +205,9 @@ export function parse (
     }
   }
 
+  // parseHTMl 的作用
+  // 会依次去遍历 html 模板字符串，将 html 模板字符串转换为 AST 对象
+  // 将 html 中的属性和指令都会记录在 AST 对象上
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -224,7 +227,8 @@ export function parse (
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs)
       }
-
+      // 将 handleStartTag 方法 处理完之后会调用 createASTElment 方法
+      // 将 其转换为 AST 对象
       let element: ASTElement = createASTElement(tag, attrs, currentParent)
       if (ns) {
         element.ns = ns
@@ -269,6 +273,7 @@ export function parse (
       }
 
       if (!inVPre) {
+        // 开始处理 v-pre 指令
         processPre(element)
         if (element.pre) {
           inVPre = true
@@ -281,6 +286,7 @@ export function parse (
         processRawAttrs(element)
       } else if (!element.processed) {
         // structural directives
+        // 处理 v-for  v-if  v-once
         processFor(element)
         processIf(element)
         processOnce(element)

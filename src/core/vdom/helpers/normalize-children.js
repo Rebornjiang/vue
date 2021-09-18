@@ -48,6 +48,8 @@ function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNo
     if (isUndef(c) || typeof c === 'boolean') continue
     lastIndex = res.length - 1
     last = res[lastIndex]
+
+    //  数据嵌套的情况
     //  nested
     if (Array.isArray(c)) {
       if (c.length > 0) {
@@ -59,7 +61,10 @@ function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNo
         }
         res.push.apply(res, c)
       }
-    } else if (isPrimitive(c)) {
+    } 
+    // 数组中是 primitive 普通值
+    else if (isPrimitive(c)) {
+      // 判断数组中最后一个元素是否是 textNode
       if (isTextNode(last)) {
         // merge adjacent text nodes
         // this is necessary for SSR hydration because text nodes are

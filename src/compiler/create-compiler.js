@@ -6,10 +6,17 @@ import { createCompileToFunctionFn } from './to-function'
 
 export function createCompilerCreator (baseCompile: Function): Function {
   return function createCompiler (baseOptions: CompilerOptions) {
+
+    // compile 核心作用
+    // 1. 将传入进来的 options 与 baseOptions 进行合并
+    // 2. 调用 baseComile 进行编译
+    // 3. 记录错误
+
     function compile (
       template: string,
       options?: CompilerOptions
     ): CompiledResult {
+      // baseOptions 
       const finalOptions = Object.create(baseOptions)
       const errors = []
       const tips = []

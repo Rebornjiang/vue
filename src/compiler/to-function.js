@@ -18,9 +18,12 @@ function createFunction (code, errors) {
   }
 }
 
+// 将 template 模板转换为render函数
 export function createCompileToFunctionFn (compile: Function): Function {
+  // 创建一个缓存对象
   const cache = Object.create(null)
 
+  // 
   return function compileToFunctions (
     template: string,
     options?: CompilerOptions,
@@ -90,6 +93,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     // turn code into functions
     const res = {}
     const fnGenErrors = []
+    // 将编译的 render函数字符串转换为 render 函数
     res.render = createFunction(compiled.render, fnGenErrors)
     res.staticRenderFns = compiled.staticRenderFns.map(code => {
       return createFunction(code, fnGenErrors)
@@ -109,6 +113,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
       }
     }
 
+    // 将结果在缓存中记录下来
     return (cache[key] = res)
   }
 }

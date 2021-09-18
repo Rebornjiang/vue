@@ -15,7 +15,7 @@ import { bindDynamicKeys, prependModifier } from './bind-dynamic-keys'
 export function installRenderHelpers (target: any) {
   target._o = markOnce
   target._n = toNumber
-  target._s = toString
+  target._s = toString // 转字符串
   target._l = renderList
   target._t = renderSlot
   target._q = looseEqual
@@ -24,7 +24,7 @@ export function installRenderHelpers (target: any) {
   target._f = resolveFilter
   target._k = checkKeyCodes
   target._b = bindObjectProps
-  target._v = createTextVNode
+  target._v = createTextVNode // 创建文本 VNode
   target._e = createEmptyVNode
   target._u = resolveScopedSlots
   target._g = bindObjectListeners

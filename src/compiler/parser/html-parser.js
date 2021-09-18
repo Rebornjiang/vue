@@ -58,12 +58,16 @@ export function parseHTML (html, options) {
   const canBeLeftOpenTag = options.canBeLeftOpenTag || no
   let index = 0
   let last, lastTag
+  // 循环遍历 tempmlate (html 字符串)
+  // 如果遇到节点注释，文档说明， 开始标签，节点标签会进行相对应的操作，并将处理完的内容进行截取，然后继续遍历剩余的 template，
+  // 直到整个 html 字符串 都被处理完成。
   while (html) {
     last = html
     // Make sure we're not in a plaintext content element like script/style
     if (!lastTag || !isPlainTextElement(lastTag)) {
       let textEnd = html.indexOf('<')
       if (textEnd === 0) {
+        // 遇到节点注释
         // Comment:
         if (comment.test(html)) {
           const commentEnd = html.indexOf('-->')
@@ -87,6 +91,7 @@ export function parseHTML (html, options) {
           }
         }
 
+        // 遇到文档说明
         // Doctype:
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
@@ -94,6 +99,8 @@ export function parseHTML (html, options) {
           continue
         }
 
+
+        // 遇到 结束标签
         // End tag:
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
@@ -103,6 +110,7 @@ export function parseHTML (html, options) {
           continue
         }
 
+        // 遇到开始标签
         // Start tag:
         const startTagMatch = parseStartTag()
         if (startTagMatch) {

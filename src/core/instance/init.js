@@ -28,7 +28,7 @@ export function initMixin (Vue: Class<Component>) {
       mark(startTag)
     }
 
-    // 如果是 Vue 实例不需要被 observe
+    // 设置一个flag，避免vm实例对象被 observed 方法转换为响应式的方法。
     // a flag to avoid this being observed
     vm._isVue = true
 
@@ -52,6 +52,7 @@ export function initMixin (Vue: Class<Component>) {
 
     // 给实例设置渲染时候的代理对象
     // 此处的代理渲染代理对象会在调用 _render.call(_renderProxy) 传入
+    // 指定 render 函数的内部 this 指向
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
       // 如果在开发环境 会将调用  vm._renderProxy = new Proxy(vm, handler) 转换为代理对象

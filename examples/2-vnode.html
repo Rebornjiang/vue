@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="../dist/vue.js"></script>
+</head>
+
+<body>
+
+  <div id="app">
+    <!-- <h1>name: {{name}}</h1>
+    <h1>age: {{age}}</h1>
+    <h1>hobby1: {{hobby.one}}</h1>
+    <h1>hobby2: {{hobby.two}}</h1> -->
+
+  </div>
+
+  <script>
+
+
+    const vm = new Vue({
+      el: '#app',
+      data: {
+        name: 'reborn',
+        age: 18,
+        hobby: {
+          one: 'playGame',
+          two: 'playBall'
+        }
+      },
+      render(h) {
+        // with (this) {
+        //   return h('div', [h('h1', name), h('h1', age), h('h1', name)])
+
+        // }
+        return h('div', [h('h1', this.name), h('h1', this.age), h('h1', this.name)])
+      }
+    })
+
+
+
+
+
+  </script>
+
+</body>
+
+</html>

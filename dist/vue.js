@@ -2511,6 +2511,8 @@
       if (isUndef(c) || typeof c === 'boolean') { continue }
       lastIndex = res.length - 1;
       last = res[lastIndex];
+
+      //  数据嵌套的情况
       //  nested
       if (Array.isArray(c)) {
         if (c.length > 0) {
@@ -2522,7 +2524,10 @@
           }
           res.push.apply(res, c);
         }
-      } else if (isPrimitive(c)) {
+      } 
+      // 数组中是 primitive 普通值
+      else if (isPrimitive(c)) {
+        // 判断数组中最后一个元素是否是 textNode
         if (isTextNode(last)) {
           // merge adjacent text nodes
           // this is necessary for SSR hydration because text nodes are
@@ -3090,7 +3095,7 @@
   function installRenderHelpers (target) {
     target._o = markOnce;
     target._n = toNumber;
-    target._s = toString;
+    target._s = toString; // 转字符串
     target._l = renderList;
     target._t = renderSlot;
     target._q = looseEqual;
@@ -3099,7 +3104,7 @@
     target._f = resolveFilter;
     target._k = checkKeyCodes;
     target._b = bindObjectProps;
-    target._v = createTextVNode;
+    target._v = createTextVNode; // 创建文本 VNode
     target._e = createEmptyVNode;
     target._u = resolveScopedSlots;
     target._g = bindObjectListeners;
@@ -3492,14 +3497,17 @@
     tag,
     data,
     children,
-    normalizationType,
+    normalizationType, // ?? RJ
     alwaysNormalize
   ) {
+    // data 没有传
     if (Array.isArray(data) || isPrimitive(data)) {
       normalizationType = children;
       children = data;
       data = undefined;
     }
+
+    // alwaysNormalize 为 true，是用户定义的render函数
     if (isTrue(alwaysNormalize)) {
       normalizationType = ALWAYS_NORMALIZE;
     }
@@ -3513,22 +3521,32 @@
     children,
     normalizationType
   ) {
+    // 校验 data 是否为响应式数据
     if (isDef(data) && isDef((data).__ob__)) {
        warn(
         "Avoid using observed data object as vnode data: " + (JSON.stringify(data)) + "\n" +
         'Always create fresh vnode data objects in each render!',
         context
       );
+      // createEmptyVNode 创建一个空的虚拟 dom
       return createEmptyVNode()
     }
+
+    // data 对象是否是是 is 语法,
+    //  <component :is="targetComponent"></component>
     // object syntax in v-bind
     if (isDef(data) && isDef(data.is)) {
+      // data.is 的值才是真正的组件
       tag = data.is;
     }
+
     if (!tag) {
       // in case of component :is set to falsy value
       return createEmptyVNode()
     }
+
+    // 校验 data.key 的值
+    // key 必须是 string或是 number
     // warn against non-primitive key
     if (
       isDef(data) && isDef(data.key) && !isPrimitive(data.key)
@@ -3541,6 +3559,8 @@
         );
       }
     }
+
+    // 处理插槽的情况
     // support single function children as default scoped slot
     if (Array.isArray(children) &&
       typeof children[0] === 'function'
@@ -3549,15 +3569,24 @@
       data.scopedSlots = { default: children[0] };
       children.length = 0;
     }
+
+    // RJ
+    // 处理 children ，保证其为数组
+    // 将children的数组的内容拍平，转换为一维数组
     if (normalizationType === ALWAYS_NORMALIZE) {
+      // 处理用户传入的render函数
       children = normalizeChildren(children);
     } else if (normalizationType === SIMPLE_NORMALIZE) {
+      // 处理模板编译器生成的render函数
       children = simpleNormalizeChildren(children);
     }
+
+
     var vnode, ns;
     if (typeof tag === 'string') {
       var Ctor;
       ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
+      // 是否是 html 保留标签
       if (config.isReservedTag(tag)) {
         // platform built-in elements
         if ( isDef(data) && isDef(data.nativeOn) && data.tag !== 'component') {
@@ -3570,7 +3599,10 @@
           config.parsePlatformTagName(tag), data, children,
           undefined, undefined, context
         );
-      } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+      } 
+      // 是否是自定义组件
+      // resolveAsset 用于获取 components 选项中为 tag 名称的组件
+      else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
         // component
         vnode = createComponent(Ctor, data, context, children, tag);
       } else {
@@ -3582,10 +3614,13 @@
           undefined, undefined, context
         );
       }
-    } else {
+    } 
+    // tag 不等于 string ， 表明其是一个组件
+    else {
       // direct component options / constructor
       vnode = createComponent(tag, data, context, children);
     }
+
     if (Array.isArray(vnode)) {
       return vnode
     } else if (isDef(vnode)) {
@@ -3644,6 +3679,7 @@
     // so that we get proper render context inside it.
     // args order: tag, data, children, normalizationType, alwaysNormalize
     // internal version is used by render functions compiled from templates
+    // 模板生成的 render 函数内部调用 _c 来创建虚拟dom
     vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
     // normalization is always applied for the public version, used in
     // user-written render functions.
@@ -5279,7 +5315,7 @@
         mark(startTag);
       }
 
-      // 如果是 Vue 实例不需要被 observe
+      // 设置一个flag，避免vm实例对象被 observed 方法转换为响应式的方法。
       // a flag to avoid this being observed
       vm._isVue = true;
 
@@ -5303,6 +5339,7 @@
 
       // 给实例设置渲染时候的代理对象
       // 此处的代理渲染代理对象会在调用 _render.call(_renderProxy) 传入
+      // 指定 render 函数的内部 this 指向
       /* istanbul ignore else */
       {
         // 如果在开发环境 会将调用  vm._renderProxy = new Proxy(vm, handler) 转换为代理对象
@@ -6296,7 +6333,8 @@
 
     var modules = backend.modules;
     var nodeOps = backend.nodeOps;
-
+    // 处理 modules
+    // cbs[hookName] = []
     for (i = 0; i < hooks.length; ++i) {
       cbs[hooks[i]] = [];
       for (j = 0; j < modules.length; ++j) {
@@ -8884,13 +8922,14 @@
     }
   } : {};
 
+  // baseModules
   var platformModules = [
     attrs,
     klass,
     events,
     domProps,
     style,
-    transition
+    transition // 用于处理过渡动画的模块
   ];
 
   /*  */
